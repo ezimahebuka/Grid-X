@@ -1,0 +1,180 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String    @id @default(auto()) @map("_id") @db.ObjectId
+  fullName             String
+  phone                String    @unique
+  email                String?   @unique
+  passwordHash         String
+  role                 Role      @default(USER)
+  discoZone            String?
+  emailVerified        Boolean   @default(false)
+  verificationCodeHash String?
+  verificationExpiresAt DateTime?
+  passwordResetCodeHash String?
+  passwordResetExpiresAt DateTime?
+  createdAt             DateTime  @default(now())
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model Meter {
+  id           String      @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String      @db.ObjectId
+  tuyaDeviceId String      @unique
+  disco        String
+  meterNumber  String
+  status       MeterStatus @default(OFFLINE)
+  createdAt    DateTime    @default(now())
+
+  @@index([userId])
+}
+
+enum MeterStatus {
+  ONLINE
+  OFFLINE
+  GRID_OFF
+}
+
+model TelemetryReading {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  meterId       String   @db.ObjectId
+  voltage       Float
+  current       Float
+  activeLoadKw  Float
+  cumulativeKwh Float
+  recordedAt    DateTime @default(now())
+
+  @@index([meterId, recordedAt])
+}
+
+model GridStatusLog {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  meterId   String     @db.ObjectId
+  status    GridStatus
+  changedAt DateTime   @default(now())
+
+  @@index([meterId])
+}
+
+enum GridStatus {
+  ON
+  OFF
+}
+
+model Wallet {
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String @unique @db.ObjectId
+  balanceKobo Int    @default(0)
+}
+
+model WalletTransaction {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  walletId   String   @db.ObjectId
+  amountKobo Int
+  provider   String
+  status     String
+  reference  String   @unique
+  createdAt  DateTime @default(now())
+}
+
+model WalletTopup {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  reference     String   @unique
+  amountKobo    Int
+  status        String
+  provider      String   @default("KORAPAY")
+  providerData  Json?
+  creditedAt    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status])
+}
+
+model BillPayment {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  requestId     String   @unique
+  serviceType   String
+  serviceId     String
+  amountKobo    Int
+  status        String
+  provider      String   @default("VTPASS")
+  providerCode  String?
+  providerData  Json?
+  debitedAt     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status])
+}
+
+model VendingTransaction {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId         String   @db.ObjectId
+  meterId        String   @db.ObjectId
+  disco          String
+  amountKobo     Int
+  status         String
+  provider       String
+  token          String?
+  kwhCredited    Float?
+  retryCount     Int      @default(0)
+  idempotencyKey String   @unique
+  createdAt      DateTime @default(now())
+
+  @@index([status])
+}
+
+model BalanceSnapshot {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  meterId          String   @unique @db.ObjectId
+  baseBalanceKwh   Float
+  lastCalibratedAt DateTime @default(now())
+}
+
+model AlertLog {
+  id      String   @id @default(auto()) @map("_id") @db.ObjectId
+  meterId String   @db.ObjectId
+  type    String
+  channel String
+  sentAt  DateTime @default(now())
+}
+
+model ReceiptScan {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String   @db.ObjectId
+  meterId           String   @db.ObjectId
+  rawOcrText        String?
+  extractedToken    String?
+  extractedKwh      Float?
+  extractedAmount   Int?
+  status            String
+  verifiedByAdminId String?  @db.ObjectId
+  createdAt         DateTime @default(now())
+}
+
+model AdminAuditLog {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  adminId    String   @db.ObjectId
+  action     String
+  targetType String
+  targetId   String   @db.ObjectId
+  before     Json?
+  after      Json?
+  createdAt  DateTime @default(now())
+}

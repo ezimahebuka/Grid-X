@@ -1,0 +1,48 @@
+version: "3.8"
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: bill-unity-mongo
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      # This is what turns a standalone Mongo container into a usable single-node
+      # replica set automatically on first boot — without this, Prisma transactions
+      # (needed for wallet debit + vending transaction atomicity) will fail outright.
+      test: >
+        echo "try { rs.status() } catch (err) {
+          rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongo:27017' }] })
+        }" | mongosh --quiet
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: bill-unity-redis
+    ports:
+      - "6379:6379"
+
+  app:
+    build: .
+    container_name: bill-unity-app
+    ports:
+      - "4000:4000"
+    env_file:
+      - .env
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./src:/app/src
+      - ./prisma:/app/prisma
+    command: npm run dev
+
+volumes:
+  mongo_data:
