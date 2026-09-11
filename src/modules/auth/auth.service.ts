@@ -35,9 +35,9 @@ export async function registerUser(input: RegisterInput) {
     );
   }
 
-  if (!isEmailConfigured()) {
-    throw new AppError("Email verification is not configured", 503);
-  }
+  // if (!isEmailConfigured()) {
+  //   throw new AppError("Email verification is not configured", 503);
+  // }
 
   const passwordHash = await bcrypt.hash(input.password, SALT_ROUNDS);
   const verificationCode = randomInt(100000, 1000000).toString();
@@ -60,11 +60,11 @@ export async function registerUser(input: RegisterInput) {
     data: { userId: user.id, balanceKobo: 0 },
   });
 
-  await sendVerificationEmail(
-    input.email,
-    input.fullName.split(" ")[0],
-    verificationCode,
-  );
+  // await sendVerificationEmail(
+  //   input.email,
+  //   input.fullName.split(" ")[0],
+  //   verificationCode,
+  // );
 
   return sanitizeUser(user);
 }
@@ -121,10 +121,10 @@ export async function loginUser(input: LoginInput) {
     expiresIn: env.JWT_EXPIRES_IN,
   } as jwt.SignOptions);
 
-  await sendSecurityNotification(
-    () => sendLoginNotification(input.email, user.fullName.split(" ")[0]),
-    "login",
-  );
+  // await sendSecurityNotification(
+  //   () => sendLoginNotification(input.email, user.fullName.split(" ")[0]),
+  //   "login",
+  // );
 
   return { user: sanitizeUser(user), token };
 }
@@ -181,13 +181,13 @@ export async function resetPassword(input: ResetPasswordInput) {
       passwordResetExpiresAt: null,
     },
   });
-  await sendSecurityNotification(
-    () =>
-      user.email
-        ? sendPasswordChangedEmail(user.email, user.fullName.split(" ")[0])
-        : Promise.resolve(),
-    "password change",
-  );
+  // await sendSecurityNotification(
+  //   () =>
+  //     user.email
+  //       ? sendPasswordChangedEmail(user.email, user.fullName.split(" ")[0])
+  //       : Promise.resolve(),
+  //   "password change",
+  // );
   return { message: "Password reset successfully" };
 }
 
